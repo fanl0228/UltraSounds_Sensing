@@ -32,7 +32,7 @@ def Xcorr(receivedSig: np.ndarray, chirp: np.ndarray, low: int, high: int, rate:
     """
 
     bandpassSig = Filter(receivedSig, low, high, rate, type='bandpass')
-    corr = signal.correlate(bandpassSig, chirp, mode='full', method='auto')
+    corr = signal.correlate(bandpassSig, chirp, mode='same', method='auto')
     return bandpassSig, corr
 
 
@@ -59,7 +59,7 @@ def Aligned_Chirps(peaks: np.ndarray,
 
     """
     chirpSamples = int(chirpSamples / interval_factor)
-    shipFrames = int(len(corr) / chirpSamples * 0.1)
+    shipFrames = 5 #int(len(corr) / chirpSamples * 0.1)
     
 
     i = 0
@@ -78,16 +78,18 @@ def Aligned_Chirps(peaks: np.ndarray,
         if len(corrSlice) != chirpSamples:
             gap_samples = chirpSamples - len(corrSlice)
             corrSlice = np.append(corrSlice, np.zeros(gap_samples))
-        
-        corrEnvY = np.abs(signal.hilbert(corrSlice))
 
-        # 对包络信号插值
-        # upCorrEnvY = UpInterpolate(corrEnvY, upTimes)
-        upCorrEnvY = corrEnvY
-
+        # corrSlice_hilbert = signal.hilbert(corrSlice)
+        # upCorrEnvY = abs(np.sqrt(corrSlice ** 2 + corrSlice_hilbert ** 2))
+        # # LP-Filter
+        # ellip_filter = signal.iirfilter(15, Wn=4000, rp=1, rs=60, btype='lowpass',
+        #                                 analog=False, ftype='ellip', fs=48000, output='sos')
+        # upCorrEnvY = signal.sosfilt(ellip_filter, upCorrEnvY)
+        upCorrEnvY = corrSlice
         if 0:
             plt.figure(100)
-            plt.plot(upCorrEnvY)
+            plt.plot(np.abs(corrSlice))
+            plt.plot(upCorrEnvY, 'r')
             plt.pause(0.05)
 
         xOffset = -1
@@ -97,15 +99,13 @@ def Aligned_Chirps(peaks: np.ndarray,
         else:
             xOffset = int(xPeaks[i])
 
-        # upCorrEnvY = upCorrEnvY[xOffset: xOffset + maxPoints*upTimes-upTimes*10]  # -upTimes*30
-        upCorrEnvY = upCorrEnvY[xOffset: chirpSamples - xOffset]  # -upTimes*30
+        upCorrEnvY = upCorrEnvY[xOffset: chirpSamples]
 
-        if len(upCorrEnvY) < int(chirpSamples*0.5):
-            gap_samples = int(chirpSamples*0.5 - len(upCorrEnvY))
+        if len(upCorrEnvY) < int(chirpSamples):
+            gap_samples = int(chirpSamples - len(upCorrEnvY))
             upCorrEnvY = np.append(upCorrEnvY, np.zeros(gap_samples))
-        elif len(upCorrEnvY) > int(chirpSamples*0.5):
-            gap_samples = int(len(upCorrEnvY) - chirpSamples*0.5)
-            upCorrEnvY = upCorrEnvY[:int(chirpSamples*0.5)]
+        elif len(upCorrEnvY) > int(chirpSamples):
+            upCorrEnvY = upCorrEnvY[:int(chirpSamples)]
 
         upCorrEnvYList.append(upCorrEnvY)
 
@@ -114,6 +114,30 @@ def Aligned_Chirps(peaks: np.ndarray,
     return upCorrEnvYList, xOffsetsList
 
 
+def one_dimensional_kalman_filter(measurements,
+                                  initial_state_mean,
+                                  initial_state_covariance,
+                                  process_variance,
+                                  measurement_variance):
+
+    state_mean = initial_state_mean
+    state_covariance = initial_state_covariance
+
+    filtered_states = []
+
+    for measurement in measurements:
+        # Prediction step
+        state_mean_prior = state_mean
+        state_covariance_prior = state_covariance + process_variance
+
+        # Update step
+        kalman_gain = state_covariance_prior / (state_covariance_prior + measurement_variance)
+        state_mean = state_mean_prior + kalman_gain * (measurement - state_mean_prior)
+        state_covariance = (1 - kalman_gain) * state_covariance_prior
+
+        filtered_states.append(state_mean)
+
+    return np.array(filtered_states)
 
 
 
