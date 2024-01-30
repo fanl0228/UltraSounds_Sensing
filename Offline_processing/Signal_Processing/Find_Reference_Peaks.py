@@ -49,6 +49,12 @@ def find_reference_peaks(received_signals, chirp_signal, startFreq, stopFreq, sa
     # TopMicChannel = TopMicChannel[196:-207]
     # BottomMicChannel = BottomMicChannel[196:-207]
 
+    ellip_filter = signal.iirfilter(25, Wn=10000, rp=1, rs=60, btype='highpass',
+                                    analog=False, ftype='cheby2', fs=48000, output='sos')
+
+    TopMicChannel = signal.sosfilt(ellip_filter, TopMicChannel)
+    BottomMicChannel = signal.sosfilt(ellip_filter, BottomMicChannel)
+
     # Judge the speaker type: top or bottom?
     _, TopMic_corr = Xcorr(TopMicChannel, chirp_signal, startFreq, stopFreq, sampleRate)
     TopMic_corr = np.abs(TopMic_corr)
@@ -69,20 +75,24 @@ def find_reference_peaks(received_signals, chirp_signal, startFreq, stopFreq, sa
     _, bottom_corr = Xcorr(BottomMicChannel, chirp_signal, startFreq, stopFreq, sampleRate)
     bottom_corr_hilbert = signal.hilbert(bottom_corr)
     bottom_corr = abs(np.sqrt(bottom_corr ** 2 + bottom_corr_hilbert ** 2))
+
     # LP-Filter
     ellip_filter = signal.iirfilter(15, Wn=6000, rp=1, rs=60, btype='lowpass',
                                         analog=False, ftype='ellip', fs=48000, output='sos')
     bottom_corr = signal.sosfilt(ellip_filter, bottom_corr)
+
     bottom_corr = abs(bottom_corr)
     bottom_corr_peaks, _ = signal.find_peaks(bottom_corr, distance=0.8*interval, height=0.05*np.max(bottom_corr))
 
     _, top_corr = Xcorr(TopMicChannel, chirp_signal, startFreq, stopFreq, sampleRate)
     top_corr_hilbert = signal.hilbert(top_corr)
     top_corr = abs(np.sqrt(top_corr ** 2 + top_corr_hilbert ** 2))
+
     # LP-Filter
     ellip_filter = signal.iirfilter(15, Wn=6000, rp=1, rs=60, btype='lowpass',
                                         analog=False, ftype='ellip', fs=48000, output='sos')
     top_corr = signal.sosfilt(ellip_filter, top_corr)
+
     top_corr = abs(top_corr)
     top_corr_peaks, _ = signal.find_peaks(top_corr, distance=0.8*interval, height=0.05 * np.max(top_corr))
 
