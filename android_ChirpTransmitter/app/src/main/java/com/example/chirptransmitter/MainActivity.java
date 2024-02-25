@@ -59,7 +59,6 @@ public class MainActivity extends AppCompatActivity {
         Logger.addLogAdapter(new AndroidLogAdapter(formatStrategy));
 
 
-
         stereoRecorder = new StereoRecorder();
         chirpPlayer = new ChirpPlayer(stereoRecorder);
         recorderThread = new Thread(stereoRecorder);
