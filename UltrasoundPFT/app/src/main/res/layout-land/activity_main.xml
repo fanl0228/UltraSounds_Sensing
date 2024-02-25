@@ -64,10 +64,24 @@
         app:layout_constraintTop_toBottomOf="@+id/password"
         app:layout_constraintVertical_bias="0.0" />
 
+    <Button
+        android:id="@+id/button_process"
+        android:layout_width="360dp"
+        android:layout_height="50dp"
+        android:tag="0"
+        android:text="Processing"
+        android:layout_marginTop="10dp"
+        app:layout_constraintBottom_toBottomOf="@+id/text_log"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_ctrl"
+        app:layout_constraintVertical_bias="0.0" />
+
     <TextView
         android:id="@+id/text_log"
         android:layout_width="360dp"
-        android:layout_height="300dp"
+        android:layout_height="100dp"
         android:layout_marginTop="20dp"
         android:text="Log Message"
         android:textAlignment="center"
@@ -75,7 +89,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.509"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_ctrl"
+        app:layout_constraintTop_toBottomOf="@+id/button_process"
         app:layout_constraintVertical_bias="0.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
