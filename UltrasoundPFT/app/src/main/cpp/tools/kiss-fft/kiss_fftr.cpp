@@ -142,3 +142,36 @@ void kiss_fftri(kiss_fftr_cfg st,const kiss_fft_cpx *freqdata,double *timedata)
         timedata[k] /= 2;
     }
 }
+
+
+void kiss_stftr(const double *timedata,
+                kiss_fft_cpx *freqdata,
+                double Fs, int nfft, int overlap){
+
+    int windowSize = nfft;
+    double window[windowSize];
+
+    kiss_fftr_cfg cfg = kiss_fftr_alloc(nfft, 0);
+
+    // windows
+    for (int i = 0; i < windowSize; ++i) {
+        window[i] = 0.54 - 0.46 * cos(2 * M_PI * i / (windowSize - 1));
+    }
+
+    // step
+    int step = windowSize - overlap;
+
+    // FFT for each window
+    for (int i = 0; i + windowSize <= nfft; i += step) {
+        // 将窗口应用于输入数据
+        double windowedData[windowSize];
+        for (int j = 0; j < windowSize; ++j) {
+            windowedData[j] = timedata[i + j] * window[j];
+        }
+        // FFT
+        kiss_fftr(cfg, windowedData, &freqdata[i]);
+    }
+
+    free(cfg);
+
+}
