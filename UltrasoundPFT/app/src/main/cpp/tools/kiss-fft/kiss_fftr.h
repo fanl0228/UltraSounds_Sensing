@@ -32,6 +32,12 @@ void kiss_fftri(kiss_fftr_cfg cfg,const kiss_fft_cpx *freqdata,double *timedata)
  output timedata has nfft scalar points
 */
 
+
+void kiss_stftr(const double *timedata, kiss_fft_cpx *freqdata,
+                double Fs, int nfft, int overlap);
+/*
+ *
+ * */
 #define kiss_fftr_free free
 
 #endif

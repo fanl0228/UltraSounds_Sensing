@@ -30,6 +30,11 @@ import java.sql.Array;
  *
  * Mi_11: adb connect 192.168.2.186:5555
  * Mi_10: adb connect 192.168.2.154:5555
+ *
+ * Android Studio WIFIADB (Windows)
+ * 1. cd C:\Users\Dell\AppData\Local\Android\Sdk\platform-tools
+ * 2. adb tcpip 5555
+ * 3. adb connect 192.168.2.186:5555
  */
 
 
@@ -39,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("native-lib");
     }
 
-    private ActivityMainBinding binding;
+//    private ActivityMainBinding binding;
 
     /**
      * A native method that is implemented by the 'native-lib' native library,
@@ -75,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                 .showThreadInfo(false)  // (Optional) Whether to show thread info or not. Default true
                 .methodCount(0)         // (Optional) How many method line to show. Default 2
                 .methodOffset(3)        // (Optional) Skips some method invokes in stack trace. Default 5
-                .tag("ChirpTransmitter")   // (Optional) Custom tag for each log. Default PRETTY_LOGGER
+                .tag("UltrasoundPFT")   // (Optional) Custom tag for each log. Default PRETTY_LOGGER
                 .build();
         Logger.addLogAdapter(new AndroidLogAdapter(formatStrategy));
 

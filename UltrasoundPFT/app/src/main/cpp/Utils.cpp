@@ -18,7 +18,7 @@
 
 #include "Utils.h"
 
-extern const char* LOGTAG = "native processing--->";
+extern const char* LOGTAG = "UltrasoundPFT: native --->";
 
 
 const char* mergeStrings(const char* msg, const char* additional) {

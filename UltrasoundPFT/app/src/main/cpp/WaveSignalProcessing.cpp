@@ -136,31 +136,38 @@ int signalPreProcessing(ChirpParameters& params,
     }
 
     // Skip Samples
-    waveSignal.RxLeftChData.erase(waveSignal.RxLeftChData.begin(), waveSignal.RxLeftChData.begin() + params.skip_samples);
-    waveSignal.RxRightChData.erase(waveSignal.RxRightChData.begin(), waveSignal.RxRightChData.begin() + params.skip_samples);
+    waveSignal.RxLeftChData.erase(waveSignal.RxLeftChData.begin(),
+                                  waveSignal.RxLeftChData.begin() + params.skip_samples);
+    waveSignal.RxRightChData.erase(waveSignal.RxRightChData.begin(),
+                                   waveSignal.RxRightChData.begin() + params.skip_samples);
     //
     __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
                         "Left data size: %d, skip data size: %d",
                         waveSignal.RxLeftChData.size(), params.skip_samples);
 
-    int nfft = 64;
-    kiss_fftr_cfg cfg = kiss_fftr_alloc(nfft, 0);
+    int Fs = 48000;
+    int nfft = 128;
+    int overlap = 64;
+
 
     double* cx_in_left = vectorInt8ToDouble(waveSignal.RxLeftChData);
     double* cx_in_right = vectorInt8ToDouble(waveSignal.RxRightChData);
 
-    waveSignal.RxLeftFFTData = new FFT_CPX[nfft/2+1];  // channel 0
-    waveSignal.RxRightFFTData = new FFT_CPX[nfft/2+1];  // channel 1
+    int stftOutSize = (int) (waveSignal.RxLeftChData.size() - nfft)/(nfft-overlap) * (nfft/2+1);
 
-    kiss_fftr(cfg, cx_in_left, (kiss_fft_cpx*)(waveSignal.RxLeftFFTData) );
-    kiss_fftr(cfg, cx_in_right, (kiss_fft_cpx*)(waveSignal.RxRightFFTData) );
+    waveSignal.RxLeftFFTData = new FFT_CPX[stftOutSize];  // channel 0
+    waveSignal.RxRightFFTData = new FFT_CPX[stftOutSize];  // channel 1
 
-    free(cfg);
+    kiss_stftr(cx_in_left, (kiss_fft_cpx*)(waveSignal.RxLeftFFTData), Fs, nfft, overlap);
+    kiss_stftr(cx_in_right, (kiss_fft_cpx*)(waveSignal.RxRightFFTData), Fs, nfft, overlap);
+
     delete[] cx_in_left;
     delete[] cx_in_right;
 
-    logDoubleArray("Left FFT Data  ==>", (kiss_fft_cpx*)(waveSignal.RxLeftFFTData) , nfft / 2 + 1);
-    logDoubleArray("Right FFT Data ==>", (kiss_fft_cpx*)(waveSignal.RxRightFFTData) , nfft / 2 + 1);
+    logDoubleArray("Left STFT Data  ==>",
+                   (kiss_fft_cpx*)(waveSignal.RxLeftFFTData) , stftOutSize);
+    logDoubleArray("Right FFT Data ==>",
+                   (kiss_fft_cpx*)(waveSignal.RxRightFFTData) , stftOutSize);
 
 
 
