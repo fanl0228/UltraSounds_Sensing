@@ -7,10 +7,10 @@
 #include <iomanip>
 #include <android/log.h>
 
-#include "Logger.h"
-#include "chirp_generator.h"
+#include "tools/common/Logger.h"
+#include "tools/methods/chirp_generator.h"
 #include "WaveSignalProcessing.h"
-#include "Utils.h"
+#include "tools/common/Utils.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,7 +21,7 @@ extern "C" {
 
 const char* BASED_DIR = "/storage/emulated/0/Music/";
 const char* SUFFIX = "LR.wav";
-
+extern const char* LOGTAG;
 
 JNIEXPORT jstring JNICALL
 Java_com_example_ultrasoundpft_MainActivity_stringFromJNI(
@@ -48,7 +48,7 @@ Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
         jstring filename) {
 
     jsize size= env->GetStringUTFLength(filename);
-    Logd("str length: %d", (int)size);
+    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "str length: %d", (int)size);
 
     // 将Java字符串转换为C字符串
     const char *c_filename = env->GetStringUTFChars(filename, NULL);
@@ -64,11 +64,14 @@ Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
     // init WaveSignal struct
     WavHeader mHeader;
     ChirpParameters mChirpParams;
-    std::vector<int8_t> TxChirpSignal = genPCM16MonoToneBytes(mChirpParams);
-    std::vector<int8_t> RxLeftChSignal = {};
-    std::vector<int8_t> RxRightChSignal = {};
-    WaveSignalStruct mWaveSignal(&mHeader, TxChirpSignal,
-                                 RxLeftChSignal, RxRightChSignal);
+    std::vector<double> TxChirpSignal = genPCM16MonoToneBytes(mChirpParams);
+    std::vector<int16_t> RxLeftChSignal = {};
+    std::vector<int16_t> RxRightChSignal = {};
+    std::vector<double> RxLeftProcessingData = {};
+    std::vector<double> RxRightProcessingData = {};
+    WaveSignalStruct mWaveSignal((char*)c_filename, &mHeader, TxChirpSignal,
+                                 RxLeftChSignal, RxRightChSignal,
+                                 RxLeftProcessingData, RxRightProcessingData);
 
     // Read audio data
     int datasize = read_wav_file((char*)c_filename, mWaveSignal);
@@ -78,17 +81,21 @@ Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
         exit(-1);
     }
 
+#if DEBUG
+    // Log vis
+    Logd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Original Data")
+    logVector_double("Tx Chirp Signal Data ",mWaveSignal.TxChirpSignal);
+    logVector_int16("Rx Left Channel Data ", mWaveSignal.RxLeftChData);
+    logVector_int16("Rx Right Channel Data ", mWaveSignal.RxRightChData);
+    Logd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+#endif
+
+
     // Processing
     int res = signalPreProcessing(mChirpParams, mWaveSignal);
     if (res == -1){
         __android_log_print(ANDROID_LOG_ERROR, LOGTAG, "signalPreProcessing failed...");
     }
-
-    // Log vis
-    // _logVector_int8(TxChirpSignal);
-    logVector_int8("RxLeftChData", mWaveSignal.RxLeftChData);
-    logVector_int8("RxRightChData", mWaveSignal.RxRightChData);
-
 
 
 

@@ -4,9 +4,8 @@
 #ifndef ULTRASOUNDPFT_WAVESIGNALPROCESSING_H
 #define ULTRASOUNDPFT_WAVESIGNALPROCESSING_H
 
-#include "chirp_generator.h"
+#include "tools/methods/chirp_generator.h"
 
-extern const char* LOGTAG;
 
 // WAV header struct
 struct WavHeader{
@@ -27,7 +26,7 @@ struct WavHeader{
     WavHeader(){}
 
     // Constructor
-    WavHeader(const char* chunkId, uint32_t chunkSz, const char* fmt, const char* sub1Id,
+    WavHeader(char* fileNa, const char* chunkId, uint32_t chunkSz, const char* fmt, const char* sub1Id,
               uint32_t sub1Sz, uint16_t audioFmt, uint16_t numChnls, uint32_t smpRate,
               uint32_t byteRt, uint16_t blkAlgn, uint16_t btsPrSmp, const char* sub2Id,
               uint32_t sub2Sz)
@@ -50,16 +49,22 @@ typedef struct {
 
 
 struct WaveSignalStruct {
+    char* pFilename = nullptr;
+
     WavHeader* pHeader = nullptr;
 
     // transmitter signal
-    std::vector<int8_t>& TxChirpSignal;
+    std::vector<double>& TxChirpSignal;
 
     // channel 0 received signal
-    std::vector<int8_t>& RxLeftChData;
+    std::vector<int16_t>& RxLeftChData;
 
     //channel 1 received signal
-    std::vector<int8_t>& RxRightChData;
+    std::vector<int16_t>& RxRightChData;
+
+    std::vector<double>& RxLeftProcessingData;
+
+    std::vector<double>& RxRightProcessingData;
 
     // channel 0 received signal FFT data
     FFT_CPX* RxLeftFFTData = nullptr;
@@ -67,23 +72,32 @@ struct WaveSignalStruct {
     // channel 1 received signal FFT data
     FFT_CPX* RxRightFFTData = nullptr;
 
+
+
 //    WaveSignalStruct(){}
 
     // init
-    WaveSignalStruct(WavHeader* header,
-                     std::vector<int8_t>& txSignal,
-                     std::vector<int8_t>& leftSignal,
-                     std::vector<int8_t>& rightSignal)
-                        :pHeader(header),
+    WaveSignalStruct(char* filename,
+                     WavHeader* header,
+                     std::vector<double>& txSignal,
+                     std::vector<int16_t>& leftSignal,
+                     std::vector<int16_t>& rightSignal,
+                     std::vector<double>& leftProcess,
+                     std::vector<double>& rightProcess)
+                        :pFilename(filename),
+                        pHeader(header),
                          TxChirpSignal(txSignal),
                          RxLeftChData(leftSignal),
-                         RxRightChData(rightSignal) {
+                         RxRightChData(rightSignal),
+                         RxLeftProcessingData(leftProcess),
+                         RxRightProcessingData(rightProcess){
 
         // channel 0 received signal FFT data
         RxLeftFFTData = nullptr;
 
         // channel 1 received signal FFT data
         RxRightFFTData = nullptr;
+
     }
 
 };

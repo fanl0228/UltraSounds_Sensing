@@ -20,6 +20,9 @@ import com.orhanobut.logger.PrettyFormatStrategy;
 
 import java.sql.Array;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 /**
  * WIFI-ADB:
  * 1. Connect Android phone and host machine to same WiFi network.
@@ -105,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         Logger.d("onStart");
+
     }
 
 

@@ -13,6 +13,13 @@ project("ultrasoundpft")
 # now build app's shared lib
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14 -Wall")
 
+#set(CMAKE_INSTALL_PREFIX D:/08_Code/fftw-3.3.10/fftw-output)
+#set(FFTW3_DIR D:/08_Code/fftw-3.3.10)
+#add_subdirectory(${FFTW3_DIR} ${CMAKE_CURRENT_BINARY_DIR}/fftw_build)
+#include_directories(${FFTW3_DIR}/api/)
+
+add_subdirectory(tools/fftw-3.3.10)
+include_directories(tools/fftw-3.3.10/api)
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -20,22 +27,28 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14 -Wall")
 # Gradle automatically packages shared libraries with your APK.
 
 add_library( # Sets the name of the library.
-             native-lib
+            native-lib
 
              # Sets the library as a shared library.
-             SHARED
+            SHARED
 
              # Provides a relative path to your source file(s).
+#            tools/kiss-fft/kiss_fft.cpp
+#            tools/kiss-fft/kiss_fftr.cpp
 
-             tools/kiss-fft/kiss_fft.cpp
-             tools/kiss-fft/kiss_fftr.cpp
+            tools/filter/filter.cpp
 
-             WaveSignalProcessing.cpp
-             Logger.cpp
-             Utils.cpp
-             chirp_generator.cpp
+            tools/common/Logger.cpp
+            tools/common/Utils.cpp
 
-             native-lib.cpp )
+            tools/methods/chirp_generator.cpp
+            tools/methods/find_peak.cpp
+            tools/methods/xcorr.cpp
+            tools/methods/chirp_aligned.cpp
+            tools/methods/mixer.cpp
+
+            WaveSignalProcessing.cpp
+            native-lib.cpp )
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
@@ -55,9 +68,10 @@ find_library( # Sets the name of the path variable.
 # build script, prebuilt third-party libraries, or system libraries.
 
 target_link_libraries( # Specifies the target library.
-                       native-lib
+                        native-lib
 
                        # Links the target library to the log library
                        # included in the NDK.
-                       android
-                       ${log-lib} )
+                        android
+                        fftw3
+                        ${log-lib} )
