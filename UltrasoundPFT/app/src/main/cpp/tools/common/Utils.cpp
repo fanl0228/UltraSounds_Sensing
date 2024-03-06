@@ -9,16 +9,39 @@
 #include <iomanip>
 #include <cstdint>
 #include <android/log.h>
-
+#include <sys/stat.h>
+#include <unistd.h>
+#include <complex>
+#include <fstream>
+#include <string.h>
 
 #include "Utils.h"
 
 extern const char* LOGTAG = "UltrasoundPFT: native --->";
 
-const char* mergeStrings(const char* msg, const char* additional) {
+char* mergeStrings(const char* msg, const char* additional) {
     std::string mergedString = std::string(msg) + std::string(additional);
-    return mergedString.c_str();
+    return const_cast<char *>(mergedString.c_str());
 }
+
+std::string replaceSubstring(const std::string& str, const std::string& from, const std::string& to) {
+    std::string result = str;
+    size_t startPos = result.find(from);
+    if (startPos != std::string::npos) {
+        result.replace(startPos, from.length(), to);
+    }
+    return result;
+}
+
+std::string strscpString(const char* filePath, const char* str) {
+
+    std::string replacedPath1 = replaceSubstring(filePath, "Music", "Documents");
+
+    std::string replacedPath = replaceSubstring(replacedPath1, "LR.wav", str);
+
+    return replacedPath;
+}
+
 
 
 void logVector_uint8(const char * msg, const std::vector<uint8_t>& vec) {
@@ -199,6 +222,46 @@ std::vector<double> VInt16ToVDouble(const std::vector<int16_t>& input) {
 }
 
 
+
+std::vector<double> normalizeToMinusOneToOne(const std::vector<double>& inputVector) {
+    // Find the maximum and minimum value in the vector
+    auto minmax = std::minmax_element(inputVector.begin(), inputVector.end());
+    double minValue = *minmax.first;
+    double maxValue = *minmax.second;
+
+    // Calculate the range between maximum and minimum values
+    double range = maxValue - minValue;
+
+    // Normalize each element in the vector to the range [-1, 1]
+    std::vector<double> normalizedVector;
+    for (double value : inputVector) {
+        double normalizedValue = -1.0 + 2.0 * ((value - minValue) / range);
+        normalizedVector.push_back(normalizedValue);
+    }
+
+    return normalizedVector;
+}
+
+std::vector<double> normalizeToMinusOneToOne(const std::vector<int16_t>& inputVector) {
+    // Find the maximum and minimum value in the vector
+    auto minmax = std::minmax_element(inputVector.begin(), inputVector.end());
+    double minValue = static_cast<double>(*minmax.first);
+    double maxValue = static_cast<double>(*minmax.second);
+
+    // Calculate the range between maximum and minimum values
+    double range = maxValue - minValue;
+
+    // Normalize each element in the vector to the range [-1, 1]
+    std::vector<double> normalizedVector;
+    for (int16_t value : inputVector) {
+        double normalizedValue = -1.0 + 2.0 * (static_cast<double>(value - minValue) / range);
+        normalizedVector.push_back(normalizedValue);
+    }
+
+    return normalizedVector;
+}
+
+
 int saveChDataToCSV(WaveSignalStruct& waveSignal){
     // Debug, 保存数据文件
     const char *filename = mergeStrings("/storage/emulated/0/Documents",
@@ -355,6 +418,37 @@ int saveProcessingDataToCSV(WaveSignalStruct& waveSignal){
 }
 
 
+int isDirectoryExists(const char* path) {
+    struct stat info;
+
+    if (stat(path, &info) != 0) {
+        // 如果 stat() 函数返回非零值，表示目录不存在
+        return 0;
+    }
+    return S_ISDIR(info.st_mode);
+}
+
+char* extractDirectory(const char* path) {
+    const char* lastSlash = strrchr(path, '/'); // 在路径中查找最后一个斜杠字符
+
+    if (lastSlash != NULL) {
+        // 计算目录长度
+        size_t dirLength = lastSlash - path;
+
+        // 分配内存以存储目录
+        char* directory = (char*)malloc(dirLength + 1); // 加1以包含字符串终止符
+
+        // 将目录复制到新分配的内存中
+        strncpy(directory, path, dirLength);
+        directory[dirLength] = '\0'; // 添加字符串终止符
+
+        return directory;
+    } else {
+        // 如果找不到斜杠，则返回空字符串
+        return "";
+    }
+}
+
 
 int saveVectorDataToCSV(const char *filename,
                         std::vector<double>& inData){
@@ -436,4 +530,22 @@ int saveVectorDataTo2D(const char* filename,
     return 0;
 }
 
+void saveComplexMatrixToCSV(const std::string& filename,
+                            const std::vector<std::vector<std::complex<double>>>& matrix) {
+    std::ofstream file(filename);
 
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    // 将二维复数向量展平为一维向量并保存到 CSV 文件中
+    for (const auto& row : matrix) {
+        for (const auto& val : row) {
+            file << val.real() << "," << val.imag() << ",";
+        }
+        file << "\n";
+    }
+
+    file.close();
+}

@@ -47,7 +47,7 @@ public class ChirpPlayer implements Runnable {
         byte[] chirpFrame = ChirpGenerator.genPCM16MonoToneBytes(
                 this.sampleRate, chirpStartFrq, chirpStopFrq,
                 chirpDuration, chirpFrameDuration, chirpCircle,
-                applyHamming, ChirpGenerator.SPEAKER_TYPE_BOTTOM);
+                applyHamming, ChirpGenerator.SPEAKER_TYPE_TOP);
 
 //        byte[] chirpFrame = ChirpGenerator.genPCM16SingleToneBytes(
 //                this.sampleRate, chirpStartFrq, chirpDuration,

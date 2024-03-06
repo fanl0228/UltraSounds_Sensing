@@ -11,12 +11,7 @@ project("ultrasoundpft")
 
 
 # now build app's shared lib
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14 -Wall")
-
-#set(CMAKE_INSTALL_PREFIX D:/08_Code/fftw-3.3.10/fftw-output)
-#set(FFTW3_DIR D:/08_Code/fftw-3.3.10)
-#add_subdirectory(${FFTW3_DIR} ${CMAKE_CURRENT_BINARY_DIR}/fftw_build)
-#include_directories(${FFTW3_DIR}/api/)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=gnu++14 -Wall")
 
 add_subdirectory(tools/fftw-3.3.10)
 include_directories(tools/fftw-3.3.10/api)
@@ -33,10 +28,8 @@ add_library( # Sets the name of the library.
             SHARED
 
              # Provides a relative path to your source file(s).
-#            tools/kiss-fft/kiss_fft.cpp
-#            tools/kiss-fft/kiss_fftr.cpp
-
             tools/filter/filter.cpp
+            tools/filter/filter_parameters.cpp
 
             tools/common/Logger.cpp
             tools/common/Utils.cpp
@@ -46,6 +39,7 @@ add_library( # Sets the name of the library.
             tools/methods/xcorr.cpp
             tools/methods/chirp_aligned.cpp
             tools/methods/mixer.cpp
+            tools/methods/dsp_processing.cpp
 
             WaveSignalProcessing.cpp
             native-lib.cpp )

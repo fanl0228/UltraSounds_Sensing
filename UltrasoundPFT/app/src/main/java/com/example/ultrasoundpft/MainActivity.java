@@ -2,6 +2,7 @@ package com.example.ultrasoundpft;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -38,6 +39,13 @@ import java.io.IOException;
  * 1. cd C:\Users\Dell\AppData\Local\Android\Sdk\platform-tools
  * 2. adb tcpip 5555
  * 3. adb connect 192.168.2.186:5555
+ *
+ * adb pull /storage/emulated/0/Music/
+ * adb pull /storage/emulated/0/Download/
+ *
+ * adb shell rm -rf /storage/emulated/0/Music/
+ * adb shell rm -rf /storage/emulated/0/Download/
+ *
  */
 
 
@@ -54,8 +62,7 @@ public class MainActivity extends AppCompatActivity {
      * which is packaged with this application.
      */
     public native String stringFromJNI(String str);
-    public native int[] ProcessingFromJNI(String filename);
-
+    public native float[] ProcessingFromJNI(String filename);
 
     private StereoRecorder stereoRecorder;
     private ChirpPlayer chirpPlayer;
@@ -72,7 +79,9 @@ public class MainActivity extends AppCompatActivity {
     private String mCurrTimeStamp;
     private String mInputUsername;
     private String mDataFilename = null;  // need init
-    private int[] mProcessing_results;
+    private float[] mProcessing_results;
+    private boolean mIsProcessing = false;
+    private boolean mIsRecordData = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,11 +113,21 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Logger.d("onStart");
+    //Execute native function in background thread
+    private void executeNativeFunctionInBackground() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // Call native function
+                mProcessing_results = ProcessingFromJNI(mDataFilename);
 
+                Logger.d("Signal processing success.");
+                mIsProcessing = false;
+
+                Logger.d(mProcessing_results);
+
+            }
+        }).start();
     }
 
 
@@ -116,6 +135,42 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         Logger.d("onResume");
+
+        mProcessBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+//                    Logger.d(mDataFilename);
+                    if (mDataFilename != null && !mIsProcessing && !mIsRecordData){
+                        mIsProcessing = true;
+                        Logger.d("Call executeNativeFunctionInBackground");
+
+                        //Execute the native function after clicking the button
+                        executeNativeFunctionInBackground();
+
+                    }else if(mIsProcessing) {
+                        Logger.e("Signal processing, please wait....");
+                    }
+                    else if(mIsRecordData) {
+                        Logger.e("Signal collecting, please wait....");
+                    }
+                    else {
+                        Logger.e("Wait....");
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Logger.e("onClick failed");
+                }
+            }
+        });
+
+    }
+
+    @Override
+    protected void onStart(){
+        super.onStart();
+        Logger.d("onStart");
 
         mCtrlBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -140,34 +195,18 @@ public class MainActivity extends AppCompatActivity {
 
                         v.setTag("1");
                         mCtrlBtn.setText("STOP");
+                        mIsRecordData = true;
                     } else {
                         // recorder is stopped from player
                         chirpPlayer.setPlaying(false);
                         while (stereoRecorder.getRecording()) {Thread.yield();}
                         v.setTag("0");
                         mCtrlBtn.setText("START");
+                        mIsRecordData = false;
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
 
-        mProcessBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try {
-                    Logger.d(mDataFilename);
-                    if (mDataFilename != null){
-                        mProcessing_results = ProcessingFromJNI(mDataFilename);
-                        Logger.d(mProcessing_results);
-
-                    }else {
-                        Logger.d("Wait....");
-                    }
-
-
-                } catch (Exception e) {
+                    mIsRecordData = false;
                     e.printStackTrace();
                 }
             }

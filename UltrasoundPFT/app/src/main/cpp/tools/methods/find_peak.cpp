@@ -65,14 +65,6 @@ std::vector<int32_t> findPeaks(const std::vector<double>& x,
 }
 
 
-std::vector<double> diffSignal(const std::vector<double>& signal) {
-    std::vector<double> diff_signal;
-    for (size_t i = 1; i < signal.size(); ++i) {
-        diff_signal.push_back(signal[i] - signal[i - 1]);
-    }
-    return diff_signal;
-}
-
 std::vector<int32_t> diffSignal(const std::vector<int32_t>& signal) {
     std::vector<int32_t> diff_signal;
     for (size_t i = 1; i < signal.size(); ++i) {

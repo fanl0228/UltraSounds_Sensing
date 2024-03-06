@@ -41,14 +41,16 @@ Java_com_example_ultrasoundpft_MainActivity_stringFromJNI(
     return env->NewStringUTF(hello);
 }
 
-JNIEXPORT jintArray JNICALL
+JNIEXPORT jfloatArray JNICALL
 Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
         JNIEnv* env,
         jobject jobj, /* this */
         jstring filename) {
 
     jsize size= env->GetStringUTFLength(filename);
-    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "str length: %d", (int)size);
+
+    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
+                        "Call native processing, filename length: %d", (int)size);
 
     // 将Java字符串转换为C字符串
     const char *c_filename = env->GetStringUTFChars(filename, NULL);
@@ -69,9 +71,13 @@ Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
     std::vector<int16_t> RxRightChSignal = {};
     std::vector<double> RxLeftProcessingData = {};
     std::vector<double> RxRightProcessingData = {};
+    ComplexVector RxLeftMixerData;
+    ComplexVector RxRightMixerData;
+    std::vector<double> airflowVelocity = {};
     WaveSignalStruct mWaveSignal((char*)c_filename, &mHeader, TxChirpSignal,
                                  RxLeftChSignal, RxRightChSignal,
-                                 RxLeftProcessingData, RxRightProcessingData);
+                                 RxLeftProcessingData, RxRightProcessingData,
+                                 RxLeftMixerData, RxRightMixerData, airflowVelocity);
 
     // Read audio data
     int datasize = read_wav_file((char*)c_filename, mWaveSignal);
@@ -90,6 +96,11 @@ Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
     Logd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 #endif
 
+    // input CH data check
+    if(mWaveSignal.RxLeftChData.empty() || mWaveSignal.RxRightChData.empty()){
+        __android_log_print(ANDROID_LOG_ERROR, LOGTAG, "Read wave data is empty...");
+        exit(-1);
+    }
 
     // Processing
     int res = signalPreProcessing(mChirpParams, mWaveSignal);
@@ -98,44 +109,24 @@ Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
     }
 
 
+    airflowVelocity = mWaveSignal.AirflowVelocity;
+    jfloatArray jAirflowVelocity = env->NewFloatArray(airflowVelocity.size());
 
-
-
-
-
-
-
-
-
-
-
-
-//    // 将C++向量中的数据复制到Java字节数组中
-//    jclass cls_ArrayList = env->GetObjectClass(result_buffer);
-//    jmethodID mID_size = env->GetMethodID(cls_ArrayList, "size", "()I");
-//    jmethodID mID_get = env->GetMethodID(cls_ArrayList, "get", "(I)Ljava/lang/Object;");
-//    jbyteArray array = env->NewByteArray(audioData_buffer.size());
-//    env->SetByteArrayRegion(array, 0, audioData_buffer.size(), (jbyte *)&audioData_buffer[0]);
-
-
-    jintArray result;
-    result = env->NewIntArray(10);
-    if (result == NULL) {
-        return NULL; /* out of memory error thrown */
+    if (jAirflowVelocity == nullptr) {
+        __android_log_print(ANDROID_LOG_ERROR, LOGTAG, "jAirflowVelocity Memory allocation failed");
+        return nullptr; /* out of memory error thrown */
     }
 
-    /* fill a temp structure to use to populate the java int array */
-    int fill[10];
-    for (int i = 0; i < 10; i++) {
-        fill[i] = i * 2;
+    //Convert each element in std::vector<double> to jfloat and copy into jfloatArray
+    std::vector<float> floatVec;
+    floatVec.reserve(airflowVelocity.size());
+    for (double value : airflowVelocity) {
+        floatVec.push_back(static_cast<float>(value));
     }
+    env->SetFloatArrayRegion(jAirflowVelocity, 0, airflowVelocity.size(), floatVec.data());
 
-    /* move from the temp structure to the java structure */
-    env->SetIntArrayRegion(result, 0, 10, fill);
 
-    // release path
-    env->ReleaseStringUTFChars(filename, c_filename);
-    return result;
+    return jAirflowVelocity;
 }
 
 

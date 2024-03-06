@@ -5,18 +5,21 @@
 #ifndef ULTRASOUNDPFT_UTILS_H
 #define ULTRASOUNDPFT_UTILS_H
 
-//#include "../kiss-fft/kiss_fft.h"
 
+#include <complex>
 #include "../../WaveSignalProcessing.h"
 
-//extern const char* LOGTAG;
 
 #define DEBUG   1
 
 /**
  * Log print functions
  * */
-const char* mergeStrings(const char* msg, const char* additional);
+char* mergeStrings(const char* msg, const char* additional);
+
+std::string replaceSubstring(const std::string& str, const std::string& from, const std::string& to);
+
+std::string strscpString(const char* filePath, const char* str);
 
 void logVector_uint8(const char * msg, const std::vector<uint8_t>& vec);
 
@@ -38,6 +41,10 @@ void logVector_double(const char * msg, const std::vector<double>& vec);
 /**
  * convert functions
  * */
+int isDirectoryExists(const char* path);
+
+char* extractDirectory(const char* path);
+
 std::vector<int8_t> deepCopyVector(const std::vector<int8_t>& original);
 
 std::vector<int16_t> deepCopyVector(const std::vector<int16_t>& original);
@@ -54,7 +61,9 @@ std::vector<double> doubleTovector(const double* input, int size);
 
 std::vector<double> VInt16ToVDouble(const std::vector<int16_t>& input);
 
+std::vector<double> normalizeToMinusOneToOne(const std::vector<double>& inputVector);
 
+std::vector<double> normalizeToMinusOneToOne(const std::vector<int16_t>& inputVector);
 /**
  * Save data functions
  * */
@@ -68,5 +77,13 @@ int saveVectorDataToCSV(const char *filename, std::vector<int16_t>& inData);
 
 int saveVectorDataTo2D(const char* filename,
                        const std::vector<std::vector<double> >& inData);
+
+
+void saveComplexMatrixToCSV(const std::string& filename,
+                            const std::vector<std::vector<std::complex<double>>>& matrix);
+
+
+
+
 
 #endif //ULTRASOUNDPFT_UTILS_H

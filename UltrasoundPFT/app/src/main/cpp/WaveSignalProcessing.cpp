@@ -11,19 +11,24 @@
 #include <sstream>
 #include <iomanip>
 #include <android/log.h>
+#include <complex>
+
 
 #include "WaveSignalProcessing.h"
 #include "tools/common/Utils.h"
 #include "tools/common//Logger.h"
 
-//#include "tools/kiss-fft/kiss_fft.h"
-//#include "tools/kiss-fft/kiss_fftr.h"
+
 #include "tools/filter/filter.h"
 #include "tools/methods/xcorr.h"
 #include "tools/methods/find_peak.h"
 #include "tools/methods/chirp_aligned.h"
+#include "tools/methods/mixer.h"
+#include "tools/methods/dsp_processing.h"
 
 extern const char* LOGTAG;
+
+const char* BaseDir = "/storage/emulated/0/Documents/";
 
 /** ===========================================================================================
  *  Private function
@@ -47,7 +52,6 @@ int read_wav_file(char *fname, WaveSignalStruct& waveSignal) {
         return -1;
     }
 
-#if DEBUG
     // wav message
     __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
                         "sampleRate: %d\t "
@@ -62,10 +66,17 @@ int read_wav_file(char *fname, WaveSignalStruct& waveSignal) {
                             waveSignal.pHeader->numChannels,
                             waveSignal.pHeader->bitsPerSample,
                             waveSignal.pHeader->byteRate);
-#endif
 
     if (waveSignal.pHeader->audioFormat != 1) {
-        Loge("Not PCM, audioFormat is: %s", waveSignal.pHeader->audioFormat );
+        __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
+                            "Not PCM, audioFormat is: %d", waveSignal.pHeader->audioFormat );
+        return -1;
+    }
+
+    if (waveSignal.pHeader->sampleRate != 48000) {
+        __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
+                            "SampleRate is: %d", waveSignal.pHeader->sampleRate );
+        return -1;
     }
 
     // Calculate the total number of bytes of sample data
@@ -102,6 +113,8 @@ int read_wav_file(char *fname, WaveSignalStruct& waveSignal) {
 int signalPreProcessing(ChirpParameters& params,
                          WaveSignalStruct& waveSignal){
 
+    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
+                        "Entry signalPreProcessing+++++++++++++++");
     int resFlag = 0;
     /**
      * Input Parameters Check.
@@ -121,48 +134,42 @@ int signalPreProcessing(ChirpParameters& params,
     waveSignal.RxLeftProcessingData = VInt16ToVDouble(waveSignal.RxLeftChData);
     waveSignal.RxRightProcessingData = VInt16ToVDouble(waveSignal.RxRightChData);
 
-#if DEBUG
-    Logd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Skip Start Samples.")
-    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
-                        "Left data size: %d;\t Right data size: %d;\t skip data size: %d",
-                        waveSignal.RxLeftChData.size(), waveSignal.RxRightChData.size(),
-                        params.skip_samples);
-    logVector_double("After Skip Left Data (RxLeftProcessingData)\t ",
-                     waveSignal.RxLeftProcessingData);
-    logVector_double("After Skip Right Data (RxLeftProcessingData)\t ",
-                     waveSignal.RxLeftProcessingData);
-    saveChDataToCSV(waveSignal);    // save left and right data for verify.
-    Logd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-#endif
-
 
     /**
      * Step 2: Processing crossCorrelation--> Envelope --> Find Peaks--> Aligned
     * */
-    std::vector<double> _lProcessingData(waveSignal.RxLeftProcessingData.size() + waveSignal.TxChirpSignal.size(), 0.0);
-    std::vector<double> _rProcessingData(waveSignal.RxRightProcessingData.size() + waveSignal.TxChirpSignal.size(), 0.0);
+    std::vector<double> temp_lProcessingData(waveSignal.RxLeftProcessingData.size() + waveSignal.TxChirpSignal.size(), 0.0);
+    std::vector<double> temp_rProcessingData(waveSignal.RxRightProcessingData.size() + waveSignal.TxChirpSignal.size(), 0.0);
 
     resFlag += crossCorrelation(waveSignal.RxLeftProcessingData, waveSignal.TxChirpSignal,
-                                _lProcessingData);
+                                temp_lProcessingData);
     resFlag += crossCorrelation(waveSignal.RxRightProcessingData, waveSignal.TxChirpSignal,
-                                _rProcessingData);
+                                temp_rProcessingData);
     if (resFlag < 0){
         __android_log_print(ANDROID_LOG_ERROR, LOGTAG,
                             "crossCorrelation return ERROR: %d", resFlag);
     }
-//    waveSignal.RxLeftProcessingData = _lProcessingData;
-//    waveSignal.RxRightProcessingData = _rProcessingData;
+
     /*********************************    Envelope   *****************************************/
     // Envelope
-    std::vector<double> _lEnvelope(_lProcessingData.size(), 0.0);
-    std::vector<double> _rEnvelope(_rProcessingData.size(), 0.0);
+    std::vector<double> temp_lEnvelope(temp_lProcessingData.size(), 0.0);
+    std::vector<double> temp_rEnvelope(temp_rProcessingData.size(), 0.0);
 
-    calculateEnvelope(_lProcessingData, _lEnvelope);
-    calculateEnvelope(_rProcessingData, _rEnvelope);
+    calculateEnvelope(temp_lProcessingData, temp_lEnvelope);
+    calculateEnvelope(temp_rProcessingData, temp_rEnvelope);
 
-    waveSignal.RxLeftProcessingData = _lEnvelope;
-    waveSignal.RxRightProcessingData = _rEnvelope;
+    waveSignal.RxLeftProcessingData = deepCopyVector(temp_lEnvelope);
+    waveSignal.RxRightProcessingData = deepCopyVector(temp_rEnvelope);
 
+    // release temp vector memory
+    temp_lEnvelope.clear();
+    temp_lEnvelope.shrink_to_fit();
+    temp_rEnvelope.clear();
+    temp_rEnvelope.shrink_to_fit();
+    temp_lProcessingData.clear();
+    temp_lProcessingData.shrink_to_fit();
+    temp_rProcessingData.clear();
+    temp_rProcessingData.shrink_to_fit();
 
 #if DEBUG
     Logd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> xCorr")
@@ -182,8 +189,8 @@ int signalPreProcessing(ChirpParameters& params,
     /*********************************    Find peaks   ***************************************/
     std::vector<int32_t> refPeakIndexs;
     // bottom mic data as reference data
-    const std::vector<double> refPeakSignal = waveSignal.RxRightProcessingData;
-    const std::vector<double> otherPeakSignal = waveSignal.RxLeftProcessingData;
+    const std::vector<double> refPeakSignal = waveSignal.RxLeftProcessingData;
+    const std::vector<double> otherPeakSignal = waveSignal.RxRightProcessingData;
 
     refPeakIndexs = findPeaks(refPeakSignal,
                               0.8*GetMax(refPeakSignal),
@@ -196,8 +203,11 @@ int signalPreProcessing(ChirpParameters& params,
         __android_log_print(ANDROID_LOG_ERROR, LOGTAG,
                             "peak index interval: %d", _indexMode);
     }
+#if DEBUG
     logVector_int32("=========> refPeakIndexs", refPeakIndexs);
+#endif
 
+#if 0
     /*********************************    Chirp Aligned   ***********************************/
     std::vector<std::vector<double> > out_alignedData_ref;
     std::vector<std::vector<double> > out_alignedData_other;
@@ -212,7 +222,7 @@ int signalPreProcessing(ChirpParameters& params,
                              out_alignedData_ref,
                              out_xOffsetArray_ref);
 
-    // aligned top mic base on bottom mic
+    // aligned bottom mic base on top mic
     resFlag += chirpsAligned(otherPeakSignal,
                              refPeakIndexs,
                              out_xOffsetArray_ref,
@@ -223,14 +233,15 @@ int signalPreProcessing(ChirpParameters& params,
         __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
                             "crossCorrelation return ERROR: %d", resFlag);
     }
+#endif
 
-#if DEBUG
+#if 0
     __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
                         "_alignedData size %d, subSize:%d, out_xOffsetArray size:%d ",
                         out_alignedData_ref.size(), out_alignedData_ref[0].size(), out_xOffsetArray_ref.size());
     logVector_int32("out_xOffsetArray", out_xOffsetArray_ref);
     // save out_alignedData_ref
-    const char* out_alignedData_ref_file = "/storage/emulated/0/Documents/alignedRefData.csv";
+    const char* out_alignedData_ref_file = mergeStrings(BaseDir, "alignedRefData.csv");
     saveVectorDataTo2D(out_alignedData_ref_file, out_alignedData_ref);
 
     __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
@@ -239,7 +250,7 @@ int signalPreProcessing(ChirpParameters& params,
     logVector_double("out_alignedData_other[0]", out_alignedData_other[0]);
 
     // save out_alignedData_other
-    const char* out_alignedData_other_file = "/storage/emulated/0/Documents/alignedOtherData.csv";
+    const char* out_alignedData_other_file = mergeStrings(BaseDir, "alignedOtherData.csv");
     saveVectorDataTo2D(out_alignedData_other_file, out_alignedData_other);
 
     logVector_int32("out_xOffsetArray_ref", out_xOffsetArray_ref);
@@ -251,123 +262,161 @@ int signalPreProcessing(ChirpParameters& params,
     * */
     // Find received signal start-end and ship samples for aligned chirps
     int _secondSkipSamples = (int32_t)(refPeakIndexs[0]);
-
-    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,"_secondSkipSamples: %d", _secondSkipSamples);
-
     waveSignal.RxLeftChData.erase(waveSignal.RxLeftChData.begin(),
                                   waveSignal.RxLeftChData.begin() + _secondSkipSamples);
     waveSignal.RxRightChData.erase(waveSignal.RxRightChData.begin(),
                                    waveSignal.RxRightChData.begin() + _secondSkipSamples);
 
-#if 0
-    const char* filename11 = "/storage/emulated/0/Documents/leftChData.csv";
-    saveVectorDataToCSV(filename11, waveSignal.RxRightChData);
-    const char* filename = "/storage/emulated/0/Documents/rightChData.csv";
-    saveVectorDataToCSV(filename, waveSignal.RxRightChData);
+#if DEBUG
+    Logd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Skip Start Samples.")
+    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
+                        "Left data size: %d;\t Right data size: %d;\t Total skip data size: %d",
+                        waveSignal.RxLeftChData.size(), waveSignal.RxRightChData.size(),
+                        params.skip_samples + _secondSkipSamples);
+
+    logVector_int16("After Skip Left Data (RxLeftChData)\t ", waveSignal.RxLeftChData);
+    logVector_int16("After Skip Right Data (RxRightChData)\t ", waveSignal.RxRightChData);
+
+    saveChDataToCSV(waveSignal);    // save left and right data for verify.
+    Logd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 #endif
-    // demodulate
 
+    /**************************** signal mixer and filter*********************************** */
+    int _chipNums = (int) (waveSignal.RxLeftChData.size() / waveSignal.TxChirpSignal.size());
+    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "chirp numbers need mixer: %d", _chipNums);
 
-
-
-
-
-
-
-
-            /**
-     * STFT
-     * */
-//    int Fs = 48000;
-//    int nfft = 128;
-//    int overlap = 64;
-//
-//    double* cx_in_left = vectorInt16ToDouble(waveSignal.RxLeftChData);
-//    double* cx_in_right = vectorInt16ToDouble(waveSignal.RxRightChData);
-//
-//    int stftOutSize = (int) (waveSignal.RxLeftChData.size() - nfft)/(nfft-overlap) * (nfft/2+1);
-//
-//    waveSignal.RxLeftFFTData = new FFT_CPX[stftOutSize];  // channel 0
-//    waveSignal.RxRightFFTData = new FFT_CPX[stftOutSize];  // channel 1
-//
-//    kiss_stftr(cx_in_left, (kiss_fft_cpx*)(waveSignal.RxLeftFFTData), Fs, nfft, overlap);
-//    kiss_stftr(cx_in_right, (kiss_fft_cpx*)(waveSignal.RxRightFFTData), Fs, nfft, overlap);
-//
-//    delete[] cx_in_left;
-//    delete[] cx_in_right;
-//
-//    logDoubleArray("Left STFT Data  ==>",
-//                   (kiss_fft_cpx*)(waveSignal.RxLeftFFTData) , stftOutSize);
-//    logDoubleArray("Right FFT Data ==>",
-//                   (kiss_fft_cpx*)(waveSignal.RxRightFFTData) , stftOutSize);
-
-    /**
-     * Filter
-     * */
-
-#if 0
-    // Filter
-    SOSSection Chebyshev2HPFSOS[] = {
-            {{1.0000,   -1.0000,        0   },{  1.0000,   -0.6169,         0}},
-            {{1.0000,   -1.9633,    1.0000  },{  1.0000,   -1.2174,    0.3877}},
-            {{1.0000,   -1.8595,    1.0000  },{  1.0000,   -1.1698,    0.4084}},
-            {{1.0000,   -1.7044,    1.0000  },{  1.0000,   -1.0962,    0.4411}},
-            {{1.0000,   -1.5191,    1.0000  },{  1.0000,   -1.0040,    0.4836}},
-            {{1.0000,   -1.3239,    1.0000  },{  1.0000,   -0.9014,    0.5334}},
-            {{1.0000,   -1.1350,    1.0000  },{  1.0000,   -0.7964,    0.5882}},
-            {{1.0000,   -0.9639,    1.0000  },{  1.0000,   -0.6960,    0.6463}},
-            {{1.0000,   -0.8174,    1.0000  },{  1.0000,   -0.6060,    0.7065}},
-            {{1.0000,   -0.6990,    1.0000  },{  1.0000,   -0.5309,    0.7681}},
-            {{1.0000,   -0.6100,    1.0000  },{  1.0000,   -0.4741,    0.8312}},
-            {{1.0000,   -0.5508,    1.0000  },{  1.0000,   -0.4387,    0.8963}},
-            {{1.0000,   -0.5213,    1.0000  },{  1.0000,   -0.4274,    0.9644}}
-    };
-    int n_sections = 13;
-
-    double* inDataLeft = vectorInt16ToDouble(waveSignal.RxLeftChData);
-    double* inDataRight = vectorInt16ToDouble(waveSignal.RxRightChData);
-
-    res += filter_signal(inDataLeft, waveSignal.RxLeftChData.size(),
-                              Chebyshev2HPFSOS, n_sections,  Chebyshev2);
-    res += filter_signal(inDataRight, waveSignal.RxLeftChData.size(),
-                         Chebyshev2HPFSOS, n_sections,  Chebyshev2);
-    if(res < 0){
-        __android_log_print(ANDROID_LOG_ERROR, LOGTAG,
-                            "crossCorrelation return ERROR: %d", res);
+    resFlag += signalMixer(waveSignal, _chipNums);
+    if(resFlag < 0){
+        __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
+                            "signalMixer return ERROR: %d", resFlag);
     }
-//    waveSignal.RxLeftProcessingData = doubleTovector(inDataLeft, waveSignal.RxLeftChData.size());
-//    waveSignal.RxRightProcessingData = doubleTovector(inDataRight, waveSignal.RxRightChData.size());
-
-
 
 #if DEBUG
-    Logd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Filter")
-    logVector_double("Filter Data RxLeftProcessingData. ",  waveSignal.RxLeftProcessingData );
-    logVector_double("Filter Data RxRightProcessingData. ",  waveSignal.RxRightProcessingData );
-//
-//    const char *lFile = "/storage/emulated/0/Documents/filterLeft.csv";
-//    saveVectorDataToCSV(lFile,  waveSignal.RxLeftProcessingData );
-//
-//    const char *rFile = "/storage/emulated/0/Documents/filterRight.csv";
-//    saveVectorDataToCSV(rFile,  waveSignal.RxRightProcessingData );
+    Logd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> signalMixer and Filter")
+    logVector_double("waveSignal.RxLeftMixerData.real",  waveSignal.RxLeftMixerData.real);
+    logVector_double("waveSignal.RxLeftMixerData.imag",  waveSignal.RxLeftMixerData.imag);
+    logVector_double("waveSignal.RxRightMixerData.real",  waveSignal.RxRightMixerData.real);
+    logVector_double("waveSignal.RxRightMixerData.imag",  waveSignal.RxRightMixerData.imag);
 
-    const char *txFile = "/storage/emulated/0/Documents/txChirp.csv";
-    saveVectorDataToCSV(txFile,  waveSignal.TxChirpSignal );
+    const std::string filename1 = strscpString(waveSignal.pFilename, "_lMixerReal.csv");
+    saveVectorDataToCSV(filename1.c_str(),   waveSignal.RxLeftMixerData.real);
 
-    std::vector<double> TxChirp = int16_to_double(waveSignal.TxChirpSignal);
-    logVector_double("Filter Data TxChirpSignal. ",  TxChirp);
+    const std::string filename2 = strscpString(waveSignal.pFilename, "_lMixerImag.csv");
+    saveVectorDataToCSV(filename2.c_str(),   waveSignal.RxLeftMixerData.imag);
+
+    const std::string filename3 = strscpString(waveSignal.pFilename, "_rMixerReal.csv");
+    saveVectorDataToCSV(filename3.c_str(),   waveSignal.RxRightMixerData.real);
+
+    const std::string filename4 = strscpString(waveSignal.pFilename,  "_rMixerImag.csv");
+    saveVectorDataToCSV(filename4.c_str(),   waveSignal.RxRightMixerData.imag);
     Logd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 #endif
 
+    std::vector<std::complex<double>> range_fft_result;
+    int16_t nFFT = 480;
+    resFlag += Range_FFT_for_RxRightMixerData(waveSignal, nFFT, range_fft_result);
+
+    // mean
+    std::vector<std::vector<std::complex<double>>> range_fft_result2D;
+    range_fft_result2D = reshape(range_fft_result, nFFT, true);
+    std::vector<double> range_fft_abs_mean;
+    range_fft_abs_mean = columnWiseMean(range_fft_result2D);
+
+#if DEBUG
+    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
+                        "range_fft_result size: %d", range_fft_result.size());
+
+    const std::string filename5 = strscpString(waveSignal.pFilename, "_range_fft_result2D.csv");
+    saveComplexMatrixToCSV(filename5, range_fft_result2D);
+
+    const std::string filename6 = strscpString(waveSignal.pFilename, "_range_fft_abs_mean.csv");
+    saveVectorDataToCSV(filename6.c_str(), range_fft_abs_mean);
 #endif
 
+    // find peaks: target bin peak and references bin peak
+    std::vector<int32_t> temp_peak;
+    temp_peak = findPeaks(range_fft_abs_mean, 0.1*GetMax(range_fft_abs_mean), 4);
+    if(temp_peak.size() < 2){
+        __android_log_print(ANDROID_LOG_ERROR, LOGTAG,
+                            "range_fft_abs_mean not find target peaks: %d", temp_peak.size());
+        return -1;
+    }
+    // sort peaks
+    std::sort(temp_peak.begin(), temp_peak.end(), [&](int32_t a, int32_t b){
+        return range_fft_abs_mean[a] > range_fft_abs_mean[b];
+    });
 
+    // get doppler signal
+    std::vector<std::complex<double>> temp_BottomFFT_bin_ref, temp_BottomFFT_bin_target;
 
+    temp_BottomFFT_bin_ref = getColumn(range_fft_result2D, temp_peak[0]); // ref bin
+    temp_BottomFFT_bin_target = getColumn(range_fft_result2D, temp_peak[1]); // target bin
 
+#if DEBUG
+    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
+                        "range_fft_result2D size: %d, range_fft_result2D[0].size(): %d",
+                        range_fft_result2D.size(), range_fft_result2D[0].size());
+    logVector_int32("peaks:", temp_peak);
+#endif
 
+    // release temp
+    temp_peak.clear();
+    temp_peak.shrink_to_fit();
 
+    std::vector<double> temp_BottomFFT_ref_unwrapPhase = unwrapPhase(temp_BottomFFT_bin_ref);
+    std::vector<double> temp_BottomFFT_target_unwrapPhase = unwrapPhase(temp_BottomFFT_bin_target);
+    std::vector<double> temp_BottomFFT_ref_unwrapPhase_sub = subtractVectors(temp_BottomFFT_target_unwrapPhase, temp_BottomFFT_ref_unwrapPhase);
+    waveSignal.RxRightProcessingData = vectorDiff(temp_BottomFFT_ref_unwrapPhase_sub);
 
+#if DEBUG
+    const std::string filename7 = strscpString(waveSignal.pFilename,  "_diff_angle.csv");
+    saveVectorDataToCSV(filename7.c_str(),waveSignal.RxRightProcessingData);
+
+    logVector_double("BottomFFT_ref_unwrapPhase", temp_BottomFFT_ref_unwrapPhase);
+    logVector_double("temp_BottomFFT_target_unwrapPhase", temp_BottomFFT_target_unwrapPhase);
+    logVector_double("temp_BottomFFT_ref_unwrapPhase_diff", temp_BottomFFT_ref_unwrapPhase_sub);
+    logVector_double("phase_velocity", waveSignal.RxRightProcessingData);
+#endif
+
+    // release temporary variables
+    temp_BottomFFT_ref_unwrapPhase.clear();
+    temp_BottomFFT_ref_unwrapPhase.shrink_to_fit();
+    temp_BottomFFT_target_unwrapPhase.clear();
+    temp_BottomFFT_target_unwrapPhase.shrink_to_fit();
+    temp_BottomFFT_ref_unwrapPhase_sub.clear();
+    temp_BottomFFT_ref_unwrapPhase_sub.shrink_to_fit();
+
+    // STFT for phase velocity
+    int windowSize = 16;
+    int hopSize = 8;
+    std::vector<std::vector<std::complex<double>>> stft_result2D;
+    stft_result2D = VectorSTFT(waveSignal.RxRightProcessingData, windowSize, hopSize);
+#if DEBUG
+    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
+                        "range_fft_result2D size: %d, range_fft_result2D[0].size(): %d",
+                        stft_result2D.size(), stft_result2D[0].size());
+
+    const std::string filename8 = strscpString(waveSignal.pFilename, "_stft_result2D.csv");
+    saveComplexMatrixToCSV(filename8, stft_result2D);
+#endif
+
+    waveSignal.RxRightProcessingData = rowwiseAbsSum(stft_result2D);
+    // calculate the velocity based on model struct
+    CalAirflowVelocity(waveSignal.RxRightProcessingData);
+
+    waveSignal.AirflowVelocity = deepCopyVector(waveSignal.RxRightProcessingData);
+
+#if DEBUG
+    const std::string filename9 = strscpString(waveSignal.pFilename, "_airflowVelocity.csv");
+    saveVectorDataToCSV(filename9.c_str(), waveSignal.RxRightProcessingData);
+    logVector_double("CalAirflowVelocity", waveSignal.RxRightProcessingData);
+#endif
+
+    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
+                        "Exit signalPreProcessing------------------");
 
     return 0;
 }
+
+
 

@@ -7,6 +7,8 @@
 #include "tools/methods/chirp_generator.h"
 
 
+
+
 // WAV header struct
 struct WavHeader{
     char chunkID[4]             = {'R', 'I', 'F', 'F'};          // chunkID
@@ -48,6 +50,19 @@ typedef struct {
 } FFT_CPX;
 
 
+struct ComplexVector{
+    std::vector<double> real;
+    std::vector<double> imag;
+
+    ComplexVector(){
+        real = {};
+        imag = {};
+    }
+
+};
+
+typedef struct ComplexVector ComplexVector;
+
 struct WaveSignalStruct {
     char* pFilename = nullptr;
 
@@ -56,22 +71,24 @@ struct WaveSignalStruct {
     // transmitter signal
     std::vector<double>& TxChirpSignal;
 
-    // channel 0 received signal
+    // Channel left/right received raw data
     std::vector<int16_t>& RxLeftChData;
-
-    //channel 1 received signal
     std::vector<int16_t>& RxRightChData;
 
+    // Channel left/right processing signal
     std::vector<double>& RxLeftProcessingData;
-
     std::vector<double>& RxRightProcessingData;
+
+    // Channel left/right Mixer data
+    ComplexVector& RxLeftMixerData;
+    ComplexVector& RxRightMixerData;
+
+    //
+    std::vector<double>& AirflowVelocity;
 
     // channel 0 received signal FFT data
     FFT_CPX* RxLeftFFTData = nullptr;
-
-    // channel 1 received signal FFT data
     FFT_CPX* RxRightFFTData = nullptr;
-
 
 
 //    WaveSignalStruct(){}
@@ -83,14 +100,22 @@ struct WaveSignalStruct {
                      std::vector<int16_t>& leftSignal,
                      std::vector<int16_t>& rightSignal,
                      std::vector<double>& leftProcess,
-                     std::vector<double>& rightProcess)
+                     std::vector<double>& rightProcess,
+                     ComplexVector& lMixerData,
+                     ComplexVector& rMixerData,
+                     std::vector<double>& velocity
+                     )
                         :pFilename(filename),
                         pHeader(header),
                          TxChirpSignal(txSignal),
                          RxLeftChData(leftSignal),
                          RxRightChData(rightSignal),
                          RxLeftProcessingData(leftProcess),
-                         RxRightProcessingData(rightProcess){
+                         RxRightProcessingData(rightProcess),
+                         RxLeftMixerData(lMixerData),
+                         RxRightMixerData(rMixerData),
+                         AirflowVelocity(velocity)
+                         {
 
         // channel 0 received signal FFT data
         RxLeftFFTData = nullptr;
