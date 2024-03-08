@@ -40,9 +40,9 @@ typedef struct ChirpParameters{
 
 
 
-std::vector<double> genPCM16MonoToneBytes(ChirpParameters params);
+std::vector<double> genPCM16MonoToneBytes(const ChirpParameters& params);
 
-std::vector<double> genPCM16MonoToneBytes_Sin(ChirpParameters params);
+std::vector<double> genPCM16MonoToneBytes_Sin(const ChirpParameters& params);
 
 std::vector<double> cosToSin(const std::vector<double>& cos_sequence);
 

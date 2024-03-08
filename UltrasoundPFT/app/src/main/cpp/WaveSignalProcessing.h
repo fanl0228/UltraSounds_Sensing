@@ -59,6 +59,13 @@ struct ComplexVector{
         imag = {};
     }
 
+//    ~ComplexVector(){
+//        real.clear();
+//        real.shrink_to_fit();
+//        imag.clear();
+//        imag.shrink_to_fit();
+//    }
+
 };
 
 typedef struct ComplexVector ComplexVector;
@@ -91,7 +98,15 @@ struct WaveSignalStruct {
     FFT_CPX* RxRightFFTData = nullptr;
 
 
-//    WaveSignalStruct(){}
+    ~WaveSignalStruct() {
+        __android_log_print(ANDROID_LOG_ERROR, "native processing--->",
+                            "WaveSignalStruct release is called.");
+
+        delete pFilename;
+
+        delete RxLeftFFTData;
+        delete RxRightFFTData;
+    }
 
     // init
     WaveSignalStruct(char* filename,
@@ -127,7 +142,6 @@ struct WaveSignalStruct {
 
 };
 typedef struct WaveSignalStruct WaveSignalStruct;
-
 
 
 int read_wav_file(char *fname, WaveSignalStruct& waveSignal);

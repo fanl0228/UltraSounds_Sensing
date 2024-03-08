@@ -76,6 +76,7 @@ int crossCorrelation(const std::vector<double>& x,
         }
         res[i] = sum;
     }
+
     return 0;
 }
 

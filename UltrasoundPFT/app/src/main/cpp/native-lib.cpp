@@ -16,9 +16,6 @@
 extern "C" {
 #endif
 
-//extern const char* LOGTAG = "native processing--->";
-//extern const char* LOGTAG;
-
 const char* BASED_DIR = "/storage/emulated/0/Music/";
 const char* SUFFIX = "LR.wav";
 extern const char* LOGTAG;
@@ -64,7 +61,7 @@ Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
     // read *.wav file
     /** Read Audio header message and Chirp to mixer */
     // init WaveSignal struct
-    WavHeader mHeader;
+    WavHeader* pHeader = new WavHeader();
     ChirpParameters mChirpParams;
     std::vector<double> TxChirpSignal = genPCM16MonoToneBytes(mChirpParams);
     std::vector<int16_t> RxLeftChSignal = {};
@@ -74,7 +71,7 @@ Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
     ComplexVector RxLeftMixerData;
     ComplexVector RxRightMixerData;
     std::vector<double> airflowVelocity = {};
-    WaveSignalStruct mWaveSignal((char*)c_filename, &mHeader, TxChirpSignal,
+    WaveSignalStruct mWaveSignal((char*)c_filename, pHeader, TxChirpSignal,
                                  RxLeftChSignal, RxRightChSignal,
                                  RxLeftProcessingData, RxRightProcessingData,
                                  RxLeftMixerData, RxRightMixerData, airflowVelocity);
@@ -108,7 +105,7 @@ Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
         __android_log_print(ANDROID_LOG_ERROR, LOGTAG, "signalPreProcessing failed...");
     }
 
-
+    // native data to jave
     airflowVelocity = mWaveSignal.AirflowVelocity;
     jfloatArray jAirflowVelocity = env->NewFloatArray(airflowVelocity.size());
 
@@ -125,6 +122,8 @@ Java_com_example_ultrasoundpft_MainActivity_ProcessingFromJNI(
     }
     env->SetFloatArrayRegion(jAirflowVelocity, 0, airflowVelocity.size(), floatVec.data());
 
+
+    delete pHeader;
 
     return jAirflowVelocity;
 }

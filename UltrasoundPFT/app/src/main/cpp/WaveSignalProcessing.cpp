@@ -12,7 +12,7 @@
 #include <iomanip>
 #include <android/log.h>
 #include <complex>
-
+#include <cmath>
 
 #include "WaveSignalProcessing.h"
 #include "tools/common/Utils.h"
@@ -70,12 +70,14 @@ int read_wav_file(char *fname, WaveSignalStruct& waveSignal) {
     if (waveSignal.pHeader->audioFormat != 1) {
         __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
                             "Not PCM, audioFormat is: %d", waveSignal.pHeader->audioFormat );
+        fclose(file);
         return -1;
     }
 
     if (waveSignal.pHeader->sampleRate != 48000) {
         __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
                             "SampleRate is: %d", waveSignal.pHeader->sampleRate );
+        fclose(file);
         return -1;
     }
 
@@ -189,20 +191,25 @@ int signalPreProcessing(ChirpParameters& params,
     /*********************************    Find peaks   ***************************************/
     std::vector<int32_t> refPeakIndexs;
     // bottom mic data as reference data
-    const std::vector<double> refPeakSignal = waveSignal.RxLeftProcessingData;
-    const std::vector<double> otherPeakSignal = waveSignal.RxRightProcessingData;
+    std::vector<double> refPeakSignal = waveSignal.RxLeftProcessingData;
+//    const std::vector<double> otherPeakSignal = waveSignal.RxRightProcessingData;
 
     refPeakIndexs = findPeaks(refPeakSignal,
-                              0.8*GetMax(refPeakSignal),
+                              0.2*GetMax(refPeakSignal),
                               (int)(0.8*waveSignal.TxChirpSignal.size()));
     // check peak index interval: assert(waveSignal.TxChirpSignal.size() == diff(refPeakIndexs))
     std::vector<int32_t> _diff = diffSignal(refPeakIndexs);
     int32_t _indexMode = modeSignal(_diff);
 
-    if (_indexMode != waveSignal.TxChirpSignal.size()){
+    if (std::abs((int32_t)(_indexMode - waveSignal.TxChirpSignal.size())) > 5){
         __android_log_print(ANDROID_LOG_ERROR, LOGTAG,
                             "peak index interval: %d", _indexMode);
+        logVector_int32("_diff", _diff);
     }
+
+    refPeakSignal.clear();
+    refPeakSignal.shrink_to_fit();
+
 #if DEBUG
     logVector_int32("=========> refPeakIndexs", refPeakIndexs);
 #endif
@@ -332,13 +339,17 @@ int signalPreProcessing(ChirpParameters& params,
     const std::string filename6 = strscpString(waveSignal.pFilename, "_range_fft_abs_mean.csv");
     saveVectorDataToCSV(filename6.c_str(), range_fft_abs_mean);
 #endif
+    range_fft_result.clear();
+    range_fft_result.shrink_to_fit();
 
     // find peaks: target bin peak and references bin peak
     std::vector<int32_t> temp_peak;
-    temp_peak = findPeaks(range_fft_abs_mean, 0.1*GetMax(range_fft_abs_mean), 4);
+//    temp_peak = findPeaks(range_fft_abs_mean, 0.1*GetMax(range_fft_abs_mean), 4);
+    temp_peak = findTwoMaxPeaks(range_fft_abs_mean);
     if(temp_peak.size() < 2){
         __android_log_print(ANDROID_LOG_ERROR, LOGTAG,
                             "range_fft_abs_mean not find target peaks: %d", temp_peak.size());
+        logVector_int32("range_fft_abs_mean peaks: ", temp_peak);
         return -1;
     }
     // sort peaks
@@ -403,8 +414,13 @@ int signalPreProcessing(ChirpParameters& params,
     waveSignal.RxRightProcessingData = rowwiseAbsSum(stft_result2D);
     // calculate the velocity based on model struct
     CalAirflowVelocity(waveSignal.RxRightProcessingData);
-
     waveSignal.AirflowVelocity = deepCopyVector(waveSignal.RxRightProcessingData);
+
+    range_fft_result2D.clear();
+    range_fft_result2D.shrink_to_fit();
+    stft_result2D.clear();
+    stft_result2D.shrink_to_fit();
+
 
 #if DEBUG
     const std::string filename9 = strscpString(waveSignal.pFilename, "_airflowVelocity.csv");
@@ -414,6 +430,8 @@ int signalPreProcessing(ChirpParameters& params,
 
     __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
                         "Exit signalPreProcessing------------------");
+
+
 
     return 0;
 }

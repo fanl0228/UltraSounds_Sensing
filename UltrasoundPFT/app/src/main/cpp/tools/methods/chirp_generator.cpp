@@ -7,7 +7,7 @@
 #include "chirp_generator.h"
 
 
-std::vector<double> genPCM16MonoToneBytes(ChirpParameters params) {
+std::vector<double> genPCM16MonoToneBytes(const ChirpParameters& params) {
 
     int chirpSampleCnt = std::round(params.chirpDuration * params.sampleRate);
     int frameSampleCnt = std::round(params.chirpDuration * params.sampleRate);
@@ -59,7 +59,7 @@ std::vector<double> genPCM16MonoToneBytes(ChirpParameters params) {
 
 
 
-std::vector<double> genPCM16MonoToneBytes_Sin(ChirpParameters params) {
+std::vector<double> genPCM16MonoToneBytes_Sin(const ChirpParameters& params) {
 
     int chirpSampleCnt = std::round(params.chirpDuration * params.sampleRate);
     int frameSampleCnt = std::round(params.chirpDuration * params.sampleRate);

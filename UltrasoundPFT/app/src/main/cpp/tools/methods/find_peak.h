@@ -9,6 +9,8 @@ double GetMin(const std::vector<double>& data);
 std::vector<int32_t> findPeaks(const std::vector<double>& x,
                            double height, int distance);
 
+std::vector<int32_t> findTwoMaxPeaks(const std::vector<double>& x);
+
 std::vector<int32_t> diffSignal(const std::vector<int32_t>& signal);
 
 double meanSignal(const std::vector<double>& signal);

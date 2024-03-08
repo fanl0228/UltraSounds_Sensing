@@ -64,6 +64,28 @@ std::vector<int32_t> findPeaks(const std::vector<double>& x,
     return peaks;
 }
 
+std::vector<int32_t> findTwoMaxPeaks(const std::vector<double>& x) {
+    std::vector<int32_t> maxIndices(2, -1); // 初始化为无效索引值
+
+    // 在信号中查找最大的两个峰值
+    double max1 = std::numeric_limits<double>::min();
+    double max2 = std::numeric_limits<double>::min();
+
+    for (int i = 0; i < x.size(); ++i) {
+        if (x[i] > max1) {
+            max2 = max1;
+            max1 = x[i];
+            maxIndices[1] = maxIndices[0];
+            maxIndices[0] = i;
+        } else if (x[i] > max2) {
+            max2 = x[i];
+            maxIndices[1] = i;
+        }
+    }
+
+    return maxIndices;
+}
+
 
 std::vector<int32_t> diffSignal(const std::vector<int32_t>& signal) {
     std::vector<int32_t> diff_signal;
