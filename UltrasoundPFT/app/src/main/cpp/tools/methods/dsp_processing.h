@@ -8,9 +8,9 @@
 
 #include "../../WaveSignalProcessing.h"
 
-#define MODEL_PATH4  0.35
-#define MODEL_PATH2  0.15
-#define MODEL_RADICAL  0.2
+#define MODEL_PATH4  0.285
+#define MODEL_PATH2  0.165
+#define MODEL_RADICAL  0.0025
 #define VOICE_VELOCITY  346
 #define START_FRE 17000
 

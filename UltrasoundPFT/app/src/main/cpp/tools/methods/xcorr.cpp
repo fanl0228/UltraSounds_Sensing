@@ -80,72 +80,6 @@ int crossCorrelation(const std::vector<double>& x,
     return 0;
 }
 
-//
-//int crossCorrelationFFT(const std::vector<double>& sig1,
-//                        const std::vector<double>& sig2,
-//                        std::vector<double>& result) {
-//    // Check input
-//    if (sig1.empty() || sig2.empty()) {
-//        __android_log_print(ANDROID_LOG_ERROR, LOGTAG,
-//                            "input data is empty");
-//        return -1;
-//    }
-//    // Initialization
-//    std::vector<double> sig11(sig1.size());
-//    std::vector<double> sig22(sig2.size());
-//
-//    normalizeSignal(sig1, sig11);
-//    normalizeSignal(sig2, sig22);
-//
-//    // calculate FFT length
-//    int n = sig11.size() + sig22.size() - 1;
-//
-//    // allocate memory
-//    kiss_fft_cpx* fft_sig11 = new kiss_fft_cpx[n];
-//    kiss_fft_cpx* fft_sig22 = new kiss_fft_cpx[n];
-//    kiss_fft_cpx* fft_result = new kiss_fft_cpx[n];
-//
-//    // Initialize FFT input signal
-//    for (int i = 0; i < sig11.size(); ++i) {
-//        fft_sig11[i].r = sig11[i];
-//        fft_sig11[i].i = 0;
-//    }
-//    for (int i = 0; i < sig22.size(); ++i) {
-//        fft_sig22[i].r = sig22[i];
-//        fft_sig22[i].i = 0;
-//    }
-//
-//    // 进行 FFT 变换
-//    kiss_fft_cfg cfg = kiss_fft_alloc(n, false, 0, 0);
-//    kiss_fft(cfg, fft_sig11, fft_sig11);
-//    kiss_fft(cfg, fft_sig22, fft_sig22);
-//
-//    // 计算互相关
-//    for (int i = 0; i < n; ++i) {
-//        fft_result[i].r = fft_sig11[i].r * fft_sig22[i].r - fft_sig11[i].i * fft_sig22[i].i;
-//        fft_result[i].i = fft_sig11[i].r * fft_sig22[i].i + fft_sig11[i].i * fft_sig22[i].r;
-//    }
-//
-//    // 进行逆 FFT 变换
-//    kiss_fft(cfg, fft_result, fft_result);
-//
-//    // 提取实部作为互相关结果
-//    result.resize(n);
-//    for (int i = 0; i < n; ++i) {
-//        result[i] = fft_result[i].r;
-//    }
-//
-//    // 释放内存
-//    kiss_fft_free(cfg);
-//    delete[] fft_sig11;
-//    delete[] fft_sig22;
-//    delete[] fft_result;
-//
-//    return 0;
-//}
-//
-
-
 
 void HilbertTransform(fftw_complex *out, double *x, size_t len_x) {
     if (!out) {
@@ -199,6 +133,8 @@ void GetEnvelope(double *out, double *x, size_t len_x) {
     for (int i = 0; i < N; i++) {
         out[i] = sqrt(ht_out[i][0]*ht_out[i][0] + ht_out[i][1]*ht_out[i][1]);
     }
+
+    fftw_free(ht_out);
 }
 
 void calculateEnvelope(const std::vector<double>& signal,

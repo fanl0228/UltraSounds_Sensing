@@ -128,6 +128,6 @@ int32_t modeSignal(const std::vector<int32_t>& nums) {
         }
 
         return mode_value;
-    }
+}
 
 

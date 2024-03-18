@@ -361,15 +361,11 @@ std::vector<double> rowwiseAbsSum(const std::vector<std::vector<std::complex<dou
 
 
 int CalAirflowVelocity(std::vector<double>& data){
-
-//    std::vector<double> result;
-//    result.reserve(data.size());
-
     for (int i = 0; i < data.size(); ++i){
-        data[i] = -0.07 * (MODEL_PATH4 / ( data[i] / (2 * M_PI * START_FRE)
+        data[i] = -0.41 * (MODEL_PATH4 / ( data[i] / (2 * M_PI * START_FRE)
                                                 + MODEL_PATH2 / VOICE_VELOCITY
                                                 + (MODEL_PATH4-MODEL_PATH2)/VOICE_VELOCITY)
-                              - VOICE_VELOCITY) * M_PI * MODEL_RADICAL * MODEL_RADICAL * 1000;
+                              - VOICE_VELOCITY) * M_PI * MODEL_RADICAL * MODEL_RADICAL * 1000 * 1000;
     }
 
     return 0;

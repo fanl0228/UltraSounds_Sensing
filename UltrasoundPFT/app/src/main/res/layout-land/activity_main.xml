@@ -20,91 +20,101 @@
             android:layout_height="match_parent">
 
             <TextView
-            android:id="@+id/AppName"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="10dp"
-            android:background="@color/darkred"
-            android:text=" Ultrasound PFT  "
-            android:textAlignment="center"
-            android:textColor="@color/white"
-            android:textSize="35sp" />
+                android:id="@+id/AppName"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="10dp"
+                android:background="@color/darkred"
+                android:text=" Ultrasound PFT  "
+                android:textAlignment="center"
+                android:textColor="@color/white"
+                android:textSize="35sp" />
 
-        <!--        <TextView-->
-        <!--            android:id="@+id/text_username"-->
-        <!--            android:layout_width="match_parent"-->
-        <!--            android:layout_height="48dp"-->
-        <!--            android:text="Username:"-->
-        <!--            android:textAlignment="center"-->
-        <!--            android:textColorHint="#95A1AA"-->
-        <!--            android:layout_marginTop="10dp"-->
-        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
-        <!--            app:layout_constraintEnd_toEndOf="parent"-->
-        <!--            app:layout_constraintHorizontal_bias="0.509"-->
-        <!--            app:layout_constraintStart_toStartOf="parent"-->
-        <!--            app:layout_constraintTop_toBottomOf="@+id/AppName"-->
-        <!--            app:layout_constraintVertical_bias="0.0" />-->
+            <!--        <TextView-->
+            <!--            android:id="@+id/text_username"-->
+            <!--            android:layout_width="match_parent"-->
+            <!--            android:layout_height="48dp"-->
+            <!--            android:text="Username:"-->
+            <!--            android:textAlignment="center"-->
+            <!--            android:textColorHint="#95A1AA"-->
+            <!--            android:layout_marginTop="10dp"-->
+            <!--            app:layout_constraintBottom_toBottomOf="parent"-->
+            <!--            app:layout_constraintEnd_toEndOf="parent"-->
+            <!--            app:layout_constraintHorizontal_bias="0.509"-->
+            <!--            app:layout_constraintStart_toStartOf="parent"-->
+            <!--            app:layout_constraintTop_toBottomOf="@+id/AppName"-->
+            <!--            app:layout_constraintVertical_bias="0.0" />-->
 
-        <EditText
-            android:id="@+id/username"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="10dp"
-            android:inputType="text"
-            android:text="User"
-            android:textAlignment="center"
-            android:textColor="#95A1AA"
-            android:textColorHint="#95A1AA"
-            android:textSize="20sp" />
+            <EditText
+                android:id="@+id/username"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="10dp"
+                android:inputType="text"
+                android:text="User"
+                android:textAlignment="center"
+                android:textColor="#95A1AA"
+                android:textColorHint="#95A1AA"
+                android:textSize="20sp" />
 
-        <!--        <TextView-->
-        <!--            android:id="@+id/text_password"-->
-        <!--            android:layout_width="match_parent"-->
-        <!--            android:layout_height="48dp"-->
-        <!--            android:text="Password:"-->
-        <!--            android:textAlignment="center"-->
-        <!--            android:textColorHint="#95A1AA"-->
-        <!--            android:layout_marginTop="10dp"-->
-        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
-        <!--            app:layout_constraintEnd_toEndOf="parent"-->
-        <!--            app:layout_constraintHorizontal_bias="0.509"-->
-        <!--            app:layout_constraintStart_toStartOf="parent"-->
-        <!--            app:layout_constraintTop_toBottomOf="@+id/username"-->
-        <!--            app:layout_constraintVertical_bias="0.0" />-->
+            <!--        <TextView-->
+            <!--            android:id="@+id/text_password"-->
+            <!--            android:layout_width="match_parent"-->
+            <!--            android:layout_height="48dp"-->
+            <!--            android:text="Password:"-->
+            <!--            android:textAlignment="center"-->
+            <!--            android:textColorHint="#95A1AA"-->
+            <!--            android:layout_marginTop="10dp"-->
+            <!--            app:layout_constraintBottom_toBottomOf="parent"-->
+            <!--            app:layout_constraintEnd_toEndOf="parent"-->
+            <!--            app:layout_constraintHorizontal_bias="0.509"-->
+            <!--            app:layout_constraintStart_toStartOf="parent"-->
+            <!--            app:layout_constraintTop_toBottomOf="@+id/username"-->
+            <!--            app:layout_constraintVertical_bias="0.0" />-->
 
-        <EditText
-            android:id="@+id/password"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="10dp"
-            android:inputType="text"
-            android:text="Passwords"
-            android:textAlignment="center"
-            android:textColor="#95A1AA"
-            android:textColorHint="#95A1AA"
-            android:textSize="20sp" />
+            <EditText
+                android:id="@+id/password"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="10dp"
+                android:inputType="text"
+                android:text="Passwords"
+                android:textAlignment="center"
+                android:textColor="#95A1AA"
+                android:textColorHint="#95A1AA"
+                android:textSize="20sp" />
 
-        <Button
-            android:id="@+id/button_ctrl"
-            android:layout_width="300dp"
-            android:layout_height="50dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/btn_selector"
-            android:tag="0"
-            android:text="START"
-            android:textSize="22sp" />
+            <Button
+                android:id="@+id/button_ctrl"
+                android:layout_width="300dp"
+                android:layout_height="50dp"
+                android:layout_marginTop="10dp"
+                android:background="@color/darkred"
+                android:tag="0"
+                android:text="START"
+                android:textColor="@color/white"
+                android:textSize="22sp" />
 
-        <Button
-            android:id="@+id/button_process"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/btn_yuanjiao"
-            android:tag="0"
-            android:text="Processing"
-            android:textSize="22sp" />
+            <Button
+                android:id="@+id/button_process"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="11dp"
+                android:background="@color/darkred"
+                android:text="Processing"
+                android:textColor="@color/white"
+                android:textSize="22sp" />
 
-
+            <TextView
+                android:id="@+id/logo"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="10dp"
+                android:background="@color/darkred"
+                android:text="========================"
+                android:textAlignment="center"
+                android:textColor="@color/white"
+                android:textSize="20sp" />
         </TableLayout>
 
         <!--        <TextView-->
@@ -135,7 +145,7 @@
 
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="300dp"
+            android:layout_height="200dp"
             android:background="@color/black"
             android:orientation="vertical">
 
@@ -153,6 +163,25 @@
             <!--                android:textColor="@color/gray"/>-->
 
         </FrameLayout>
+
+        <TextView
+            android:id="@+id/results"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_marginTop="0dp"
+            android:textColor="@color/black"
+            android:background="@color/white"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/logonon"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="4dp"
+            android:text="==== Nanjing University ======================"
+            android:textColor="@color/white"
+            android:background="@color/darkred"
+            android:textSize="20sp" />
 
     </LinearLayout>
 

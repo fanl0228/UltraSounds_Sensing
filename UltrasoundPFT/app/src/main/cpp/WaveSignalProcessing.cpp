@@ -152,6 +152,7 @@ int signalPreProcessing(ChirpParameters& params,
                             "crossCorrelation return ERROR: %d", resFlag);
     }
 
+
     /*********************************    Envelope   *****************************************/
     // Envelope
     std::vector<double> temp_lEnvelope(temp_lProcessingData.size(), 0.0);
@@ -163,17 +164,7 @@ int signalPreProcessing(ChirpParameters& params,
     waveSignal.RxLeftProcessingData = deepCopyVector(temp_lEnvelope);
     waveSignal.RxRightProcessingData = deepCopyVector(temp_rEnvelope);
 
-    // release temp vector memory
-    temp_lEnvelope.clear();
-    temp_lEnvelope.shrink_to_fit();
-    temp_rEnvelope.clear();
-    temp_rEnvelope.shrink_to_fit();
-    temp_lProcessingData.clear();
-    temp_lProcessingData.shrink_to_fit();
-    temp_rProcessingData.clear();
-    temp_rProcessingData.shrink_to_fit();
-
-#if DEBUG
+#if 1
     Logd(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> xCorr")
     __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
                         "xCorr ==> TxDataSize:%d, RxLeftChData size: %d, RxRightChData size: %d",
@@ -187,6 +178,7 @@ int signalPreProcessing(ChirpParameters& params,
     saveProcessingDataToCSV(waveSignal);
     Logd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 #endif
+
 
     /*********************************    Find peaks   ***************************************/
     std::vector<int32_t> refPeakIndexs;
@@ -207,8 +199,6 @@ int signalPreProcessing(ChirpParameters& params,
         logVector_int32("_diff", _diff);
     }
 
-    refPeakSignal.clear();
-    refPeakSignal.shrink_to_fit();
 
 #if DEBUG
     logVector_int32("=========> refPeakIndexs", refPeakIndexs);
@@ -288,6 +278,7 @@ int signalPreProcessing(ChirpParameters& params,
     Logd("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 #endif
 
+
     /**************************** signal mixer and filter*********************************** */
     int _chipNums = (int) (waveSignal.RxLeftChData.size() / waveSignal.TxChirpSignal.size());
     __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "chirp numbers need mixer: %d", _chipNums);
@@ -339,8 +330,6 @@ int signalPreProcessing(ChirpParameters& params,
     const std::string filename6 = strscpString(waveSignal.pFilename, "_range_fft_abs_mean.csv");
     saveVectorDataToCSV(filename6.c_str(), range_fft_abs_mean);
 #endif
-    range_fft_result.clear();
-    range_fft_result.shrink_to_fit();
 
     // find peaks: target bin peak and references bin peak
     std::vector<int32_t> temp_peak;
@@ -370,10 +359,6 @@ int signalPreProcessing(ChirpParameters& params,
     logVector_int32("peaks:", temp_peak);
 #endif
 
-    // release temp
-    temp_peak.clear();
-    temp_peak.shrink_to_fit();
-
     std::vector<double> temp_BottomFFT_ref_unwrapPhase = unwrapPhase(temp_BottomFFT_bin_ref);
     std::vector<double> temp_BottomFFT_target_unwrapPhase = unwrapPhase(temp_BottomFFT_bin_target);
     std::vector<double> temp_BottomFFT_ref_unwrapPhase_sub = subtractVectors(temp_BottomFFT_target_unwrapPhase, temp_BottomFFT_ref_unwrapPhase);
@@ -388,14 +373,6 @@ int signalPreProcessing(ChirpParameters& params,
     logVector_double("temp_BottomFFT_ref_unwrapPhase_diff", temp_BottomFFT_ref_unwrapPhase_sub);
     logVector_double("phase_velocity", waveSignal.RxRightProcessingData);
 #endif
-
-    // release temporary variables
-    temp_BottomFFT_ref_unwrapPhase.clear();
-    temp_BottomFFT_ref_unwrapPhase.shrink_to_fit();
-    temp_BottomFFT_target_unwrapPhase.clear();
-    temp_BottomFFT_target_unwrapPhase.shrink_to_fit();
-    temp_BottomFFT_ref_unwrapPhase_sub.clear();
-    temp_BottomFFT_ref_unwrapPhase_sub.shrink_to_fit();
 
     // STFT for phase velocity
     int windowSize = 16;
@@ -416,11 +393,6 @@ int signalPreProcessing(ChirpParameters& params,
     CalAirflowVelocity(waveSignal.RxRightProcessingData);
     waveSignal.AirflowVelocity = deepCopyVector(waveSignal.RxRightProcessingData);
 
-    range_fft_result2D.clear();
-    range_fft_result2D.shrink_to_fit();
-    stft_result2D.clear();
-    stft_result2D.shrink_to_fit();
-
 
 #if DEBUG
     const std::string filename9 = strscpString(waveSignal.pFilename, "_airflowVelocity.csv");
@@ -434,6 +406,8 @@ int signalPreProcessing(ChirpParameters& params,
 
 
     return 0;
+
+
 }
 
 

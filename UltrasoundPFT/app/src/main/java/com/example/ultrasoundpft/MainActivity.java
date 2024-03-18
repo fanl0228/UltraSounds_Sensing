@@ -5,14 +5,18 @@ import androidx.core.content.ContextCompat;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
+import android.graphics.PorterDuff;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -20,6 +24,7 @@ import android.widget.TextView;
 
 
 import com.example.ultrasoundpft.utils.Common;
+import com.example.ultrasoundpft.utils.EdgeDetector;
 import com.example.ultrasoundpft.utils.Timestamp;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.AxisBase;
@@ -47,6 +52,7 @@ import java.sql.Array;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * WIFI-ADB:
@@ -97,7 +103,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     private EditText mPassword;
     private Button mCtrlBtn;
     private Button mProcessBtn;
-    private TextView mLogView;
+    private TextView mResults;
 
     private String mBasePath = "/storage/emulated/0/Music/"; //const audio storage path
     private String mCurrTimeStamp;
@@ -108,6 +114,8 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     private boolean mIsRecordData = false;
     private boolean mIsProcessingSuccess = false;
     private AlertDialog mProgressDialog;
+
+    private String mResultsString = null;
 
     // Signal chart
     public LineChart mChart;
@@ -141,6 +149,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
         mPassword = (EditText) findViewById(R.id.password);
         mCtrlBtn = (Button) findViewById(R.id.button_ctrl);
         mProcessBtn = (Button) findViewById(R.id.button_process);
+        mResults = (TextView) findViewById(R.id.results);
 
         // init Linechart
         {
@@ -179,13 +188,11 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     @Override
     protected void onResume() {
         super.onResume();
-        Logger.d("onResume");
 
         mProcessBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 try {
-//                    Logger.d(mDataFilename);
                     if (mDataFilename != null && !mIsProcessing && !mIsRecordData){
 
                         showProgressDialog();
@@ -214,14 +221,14 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                 }
             }
         });
-        Logger.d("onResume11111");
+
+
 
     }
 
     @Override
     protected void onStart(){
         super.onStart();
-        Logger.d("onStart");
 
         mCtrlBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -247,12 +254,14 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
                         v.setTag("1");
                         mCtrlBtn.setText("STOP");
-//                        mCtrlBtn.setBackgroundColor(Color.parseColor("#006400"));
+                        mCtrlBtn.setBackgroundColor(Color.parseColor("#006400"));
                         mIsRecordData = true;
                     } else {
                         // recorder is stopped from player
                         chirpPlayer.setPlaying(false);
                         while (stereoRecorder.getRecording()) {Thread.yield();}
+
+                        mCtrlBtn.setBackgroundColor(Color.parseColor("#8B0000"));
                         v.setTag("0");
                         mCtrlBtn.setText("START");
                         mIsRecordData = false;
@@ -263,24 +272,13 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                     e.printStackTrace();
                 }
             }
+
         });
 
         startPlotChartThread();
 
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Logger.d("onPause");
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        Logger.d("onStop");
-
-    }
 
     @Override
     protected void onDestroy() {
@@ -294,8 +292,6 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
     @Override
     public void onValueSelected(Entry e, Highlight h) {
 //        Logger.i("Entry selected", e.toString());
-//        Logger.i("LOW and HIGH value==> low: " + mChart.getLowestVisibleX() + ", high: " + mChart.getHighestVisibleX());
-//        Logger.i("MIN and MAX ==> xMin: " + mChart.getXChartMin() + ", xMax: " + mChart.getXChartMax() + ", yMin: " + mChart.getYChartMin() + ", yMax: " + mChart.getYChartMax());
     }
 
     @Override
@@ -352,7 +348,7 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
                         // horizontal grid lines
                         yAxis.enableGridDashedLine(10f, 10f, 0f);
                         // axis range
-                        yAxis.setAxisMaximum(3000f);
+                        yAxis.setAxisMaximum(2000f);
                         yAxis.setAxisMinimum(0f);
                     }
 
@@ -512,13 +508,27 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
 
                 if(mProcessing_results.length > 0){
                     mIsProcessingSuccess = true; // for plot chart
+
                     Logger.d("Signal processing success.");
-                    Logger.d(mProcessing_results);
+
+                    float FVC = measure_VC(mProcessing_results, 0.08);
+                    Logger.d("FVC: "+FVC);
+
+                    float FEV1 = measure_FEV1(mProcessing_results);
+                    Logger.d("FEV1: "+ FEV1);
+
+                    mResultsString = "Measure Results: \n"
+                                   + "   FVC: " + String.format("%.2f", FVC) + ";      "
+                                   + "FEV1: " + String.format("%.2f", FEV1) + ";      "
+                                   + "FEV1/FVC: " + String.format("%.2f%%", (FEV1/FVC)*100.0) + "\n";
+
+                    mResults.setText(mResultsString);
+
+
                 } else{
                     mIsProcessingSuccess = false;
                     dismissProgressDialog();
 
-                    //
                     processingSignalFailed();
                     Logger.e("Signal processing failed.");
                 }
@@ -564,5 +574,90 @@ public class MainActivity extends AppCompatActivity implements OnChartValueSelec
             }
         });
     }
+
+
+    public float measure_VC(float[] array, double weight){
+        if (array == null || array.length == 0) {
+            throw new IllegalArgumentException("Array must not be empty or null");
+        }
+
+        // calculate baseline based on 10% front-data
+        int percentileCount = (int) Math.ceil(0.1 * array.length);
+        float sum = 0;
+        for (int i = 0; i < percentileCount; i++) {
+            sum += array[i];
+        }
+        float baseline = sum / percentileCount;
+
+        // Adjust values below baseline to 0
+        for(int i = 0; i < array.length; ++i){
+            array[i] = ((array[i] - baseline) < 0.0 )? (float) 0.0 : array[i] - baseline;
+        }
+
+        float VCSum = 0;
+
+        for (int i = 0; i < array.length; i++) {
+            VCSum += array[i] * weight;  // sample convert to time need times weight, weight is 0.08.
+        }
+        return VCSum;
+    }
+
+    public float measure_FEV1(float[] array){
+        float FEV1 = 0;
+        // estimate the start time of airflow
+        // samples number is 12.5 equal to 1 second
+        if(array.length < 15){
+            Logger.e("Error: Detection time is less than 1s.");
+            return 0;
+        }
+
+        List<Float> edges = new ArrayList<>();
+        EdgeDetector edgeDetector = new EdgeDetector(5, 30);
+        //Add data points one by one and detect rising and falling edges
+        for (float dataPoint : array) {
+            edgeDetector.addDataPoint(dataPoint);
+            if (edgeDetector.detectRisingEdge()) {
+
+                edges.add(dataPoint);
+            }
+        }
+        Logger.d("edges:"+edges);
+
+        if(edges.isEmpty()){
+            Logger.e("Error: Detection FEV1 failed.");
+            return 0;
+        }
+
+        int start_sample = 0;
+        for (int i = 0; i < array.length; i++) {
+            if (array[i] == edges.get(0)) {
+                start_sample = i;
+            }
+        }
+
+        if (start_sample != 0){
+            // 1 second is 12.5 samples
+            for (int i =0; i < 14; i++){
+                FEV1 += array[start_sample + i] * 0.08;
+            }
+        }else{
+            Logger.e("Start Sample index is Zero?");
+        }
+
+        return FEV1;
+    }
+
+    float measure_MVV(){
+        float MVV = 0;
+
+
+
+
+
+        return MVV;
+    }
+
+
+
 
 }
